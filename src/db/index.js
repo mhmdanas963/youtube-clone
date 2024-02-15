@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
 
+// Connect to DB
 const connectDB = async () => {
   try {
     const connectionInstance = await mongoose.connect(
@@ -11,8 +12,8 @@ const connectDB = async () => {
       connectionInstance.connection.host
     );
   } catch (error) {
-    console.log(`DB CONNECTION ERROR!! ${error.message}`);
-    process.exit(1);
+    // Reject promise if db connection failed
+    return Promise.reject(error);
   }
 };
 
