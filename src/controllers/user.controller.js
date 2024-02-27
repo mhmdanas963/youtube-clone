@@ -5,17 +5,6 @@ import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const registerUser = asyncHandler(async (req, res, next) => {
-  // get user details from frontend
-  // validation - not empty
-  // check if user already exists: username, email
-  // check for images: check for avatar
-  // upload them to cloudinary, avatar
-  // check for response from cloudinary
-  // create user object - create entry in db
-  // remove password and refresh token field from response
-  // check for user creation
-  // return res
-
   const { username, email, fullName, password } = req.body;
 
   // console.log(req.body);
@@ -29,11 +18,11 @@ const registerUser = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const existingUser = User.findOne({
+  const existingUser = await User.findOne({
     $or: [{ username }, { email }],
   });
 
-  // console.log(existingUser)
+  console.log(existingUser, "------------ Existing user");
 
   if (existingUser) {
     throw new ApiError({
@@ -45,8 +34,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
   const avatarFilePath = req.files?.avatar[0]?.path;
   const coverImageFilePath = req.files?.coverImage[0].path;
 
-  // console.log(avatarFile)
-  // console.log(coverImageFile)
+  // console.log(avatarFile, "------------ Avatar File")
+  // console.log(coverImageFile, "------------ Cover Image File")
 
   if (!avatarFilePath) {
     throw new ApiError({ statusCode: 400, errorMessage: "Avatar is required" });
@@ -55,8 +44,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
   const avatarResponse = await uploadToCloudinary(avatarFilePath);
   const coverImageResponse = await uploadToCloudinary(coverImageFilePath);
 
-  // console.log(avatarResponse)
-  // console.log(coverImageResponse)
+  // console.log(avatarResponse,"------------ Avatar response)
+  // console.log(coverImageResponse, ""------------ Cover Image response")
 
   if (!avatarResponse) {
     throw new ApiError({
@@ -74,11 +63,13 @@ const registerUser = asyncHandler(async (req, res, next) => {
     password,
   });
 
-  // console.log(user)
+  // console.log(user, "------------ User)
 
-  const createdUser = User.findById(user._id).select("-password -refreshToken");
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
-  // console.log(createdUser);
+  // console.log(createdUser, ""------------ Created User");
 
   if (!createdUser) {
     throw new ApiError({

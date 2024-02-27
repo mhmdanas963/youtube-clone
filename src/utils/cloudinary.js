@@ -24,7 +24,7 @@ const uploadToCloudinary = async (localFilePath) => {
     console.log(error);
   } finally {
     // remove the localFile
-    // fs.unlinkSync(localFilePath);
+    fs.unlinkSync(localFilePath);
   }
 };
 
