@@ -22,7 +22,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     $or: [{ username }, { email }],
   });
 
-  console.log(existingUser, "------------ Existing user");
+  // console.log(existingUser, "------------ Existing user");
 
   if (existingUser) {
     throw new ApiError({
@@ -31,21 +31,31 @@ const registerUser = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const avatarFilePath = req.files?.avatar[0]?.path;
-  const coverImageFilePath = req.files?.coverImage[0].path;
+  // console.log(req.files);
 
-  // console.log(avatarFile, "------------ Avatar File")
-  // console.log(coverImageFile, "------------ Cover Image File")
+  const avatarFilePath = req.files?.avatar[0]?.path;
+  let coverImageFilePath;
 
   if (!avatarFilePath) {
     throw new ApiError({ statusCode: 400, errorMessage: "Avatar is required" });
   }
 
-  const avatarResponse = await uploadToCloudinary(avatarFilePath);
-  const coverImageResponse = await uploadToCloudinary(coverImageFilePath);
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageFilePath = req.files?.coverImage[0].path;
+  }
 
-  // console.log(avatarResponse,"------------ Avatar response)
-  // console.log(coverImageResponse, ""------------ Cover Image response")
+  const avatarResponse = await uploadToCloudinary(avatarFilePath);
+  let coverImageResponse;
+
+  // console.log(avatarResponse);
+
+  if (coverImageFilePath) {
+    coverImageResponse = await uploadToCloudinary(coverImageFilePath);
+  }
 
   if (!avatarResponse) {
     throw new ApiError({
@@ -59,7 +69,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     email,
     fullName,
     avatar: avatarResponse.url,
-    coverImage: coverImageResponse.url,
+    coverImage: coverImageResponse?.url || "",
     password,
   });
 
