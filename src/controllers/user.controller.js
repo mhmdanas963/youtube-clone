@@ -115,12 +115,21 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
+  // Checks is user is already logged in
+  if (req.cookies?.refreshToken)
+    throw new ApiError({
+      statusCode: 401,
+      errorMessage: "User is already logged in",
+    });
+
+  // Checks if username or email is received from client
   if (!(username || email))
     throw new ApiError({
       statusCode: 401,
       errorMessage: "Username or email is required",
     });
 
+  // Checks if password is received from client
   if (!password)
     throw new ApiError({
       statusCode: 401,
@@ -146,9 +155,10 @@ const loginUser = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } =
     await generateAccessAndRefreshToken(user);
 
-  // Remove password and refresh token from user object
-  delete user.password;
-  delete user.refreshToken;
+  // Remove password and refresh token from user
+  const loggedInUser = await User.findById(user._id).select(
+    "-refreshToken -password"
+  );
 
   // Cookie options
   const options = {
@@ -164,7 +174,7 @@ const loginUser = asyncHandler(async (req, res) => {
       new ApiResponse({
         statusCode: 200,
         data: {
-          user,
+          loggedInUser,
           accessToken,
           refreshToken,
         },
