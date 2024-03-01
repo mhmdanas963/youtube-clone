@@ -3,6 +3,13 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
+
+// Cookie options
+const options = {
+  httpOnly: true,
+  secure: true,
+};
 
 const generateAccessAndRefreshToken = async (user) => {
   try {
@@ -160,12 +167,6 @@ const loginUser = asyncHandler(async (req, res) => {
     "-refreshToken -password"
   );
 
-  // Cookie options
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -196,11 +197,6 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
   );
 
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
   res
     .status(200)
     .clearCookie("accessToken", options)
@@ -214,4 +210,51 @@ const logoutUser = asyncHandler(async (req, res) => {
     );
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = async(async (req, res) => {
+  const incomingRefreshToken = req.cookies?.refreshToken;
+
+  if (!incomingRefreshToken)
+    throw new ApiError({
+      statusCode: 401,
+      errorMessage: "Unauthorized request",
+    });
+
+  const decodedRefreshToken = jwt.verify(
+    incomingRefreshToken,
+    process.env.REFRESH_TOKEN_SECRET
+  );
+
+  const user = await User.findById(decodedRefreshToken?._id);
+
+  if (!user)
+    throw new ApiError({
+      statusCode: 401,
+      errorMessage: "Invalid refresh token",
+    });
+
+  if (decodedRefreshToken !== user?.refreshToken)
+    throw new ApiError({
+      statusCode: 401,
+      errorMessage: "Invalid refresh token",
+    });
+
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefreshToken(user);
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse({
+        statusCode: 200,
+        data: {
+          accessToken,
+          refreshToken,
+        },
+        message: "Renewed access token successfully",
+      })
+    );
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
